@@ -1,0 +1,14 @@
+feature,importance
+cat__vehicle_type_Sports,0.6473630975371509
+cat__location_Urban,0.44424567937722953
+cat__vehicle_type_Truck,0.28129702726113104
+num__vehicle_age,0.11869581993120219
+cat__coverage_type_Premium,0.074207809
+num__annual_mileage,0.071655592
+num__prior_claims,0.030455990064650492
+num__traffic_violations,0.020215446748257395
+cat__location_Suburban,0.018082318740256925
+num__driver_age,-0.030132116
+num__policy_tenure,-0.11352242
+cat__coverage_type_Standard,-0.120579476
+cat__vehicle_type_Sedan,-0.125077338

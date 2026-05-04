@@ -25,6 +25,15 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 
 ### Pricing Calculator
 ![Pricing](images/pricing.png)
+
+### Scenario Comparison
+![Scenario](images/scenario.png)
+
+### Rate Indication
+![Rate](images/rateindicator.png)
+
+### Risk Drivers
+![Risk](images/RiskDrivers.png)
 ---
 ## 🧠 Methodology
 

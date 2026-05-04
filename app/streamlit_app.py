@@ -1,14 +1,79 @@
 import streamlit as st
-import joblib
 import pandas as pd
+
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingRegressor
 
 st.set_page_config(page_title="P&C Pricing Dashboard", layout="wide")
 
-# Load models and data
-frequency_model = joblib.load("outputs/frequency_model.joblib")
-severity_model = joblib.load("outputs/severity_model.joblib")
-feature_importance = pd.read_csv("outputs/frequency_feature_importance.csv")
-pricing_data = pd.read_csv("data/insurance_pricing_dataset.csv")
+
+@st.cache_resource
+def load_or_train_models():
+    pricing_data = pd.read_csv("data/insurance_pricing_dataset.csv")
+
+    categorical_cols = ["location", "vehicle_type", "coverage_type"]
+
+    # Frequency model
+    X_freq = pricing_data.drop(columns=["claim_flag", "claim_amount"])
+    y_freq = pricing_data["claim_flag"]
+
+    numerical_cols = [col for col in X_freq.columns if col not in categorical_cols]
+
+    frequency_preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(drop="first"), categorical_cols),
+            ("num", StandardScaler(), numerical_cols)
+        ]
+    )
+
+    frequency_model = Pipeline([
+        ("preprocessor", frequency_preprocessor),
+        ("classifier", LogisticRegression(
+            max_iter=5000,
+            class_weight="balanced",
+            solver="lbfgs"
+        ))
+    ])
+
+    frequency_model.fit(X_freq, y_freq)
+
+    # Severity model
+    claims_data = pricing_data[pricing_data["claim_flag"] == 1].copy()
+
+    X_severity = claims_data.drop(columns=["claim_flag", "claim_amount"])
+    y_severity = claims_data["claim_amount"]
+
+    severity_preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(drop="first"), categorical_cols),
+            ("num", StandardScaler(), numerical_cols)
+        ]
+    )
+
+    severity_model = Pipeline([
+        ("preprocessor", severity_preprocessor),
+        ("regressor", GradientBoostingRegressor(random_state=42))
+    ])
+
+    severity_model.fit(X_severity, y_severity)
+
+    # Feature importance
+    feature_names = frequency_model.named_steps["preprocessor"].get_feature_names_out()
+    coefficients = frequency_model.named_steps["classifier"].coef_[0]
+
+    feature_importance = pd.DataFrame({
+        "feature": feature_names,
+        "importance": coefficients
+    }).sort_values(by="importance", ascending=False)
+
+    return frequency_model, severity_model, feature_importance, pricing_data
+
+
+frequency_model, severity_model, feature_importance, pricing_data = load_or_train_models()
+
 
 st.title("P&C Pricing Analytics Dashboard")
 
@@ -229,7 +294,7 @@ with tab5:
 
     st.write("### Frequency Model")
     st.write("Predicts the probability that a policy will have a claim.")
-    st.write("Model used: Logistic Regression with TF-style preprocessing for tabular features.")
+    st.write("Model used: Logistic Regression with balanced class weights.")
 
     st.write("### Severity Model")
     st.write("Predicts the expected claim amount for policies with claims.")

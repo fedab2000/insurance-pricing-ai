@@ -17,6 +17,14 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 - Enable **scenario-based underwriting decisions**
 
 ---
+## 📌 Key Insights
+
+- Prior claims and driving behavior are the strongest predictors of claim frequency  
+- Urban locations show higher claim risk than suburban/rural segments  
+- Sports vehicles and higher mileage increase expected loss  
+- Longer policy tenure is associated with lower risk
+- ---
+
 ## 🚀 Live Demo
 [https://insurance-pricing-ai.streamlit.app](https://insurance-pricing-ai-myxjhrl3vaeyahw8kkrmc6.streamlit.app/)
 

@@ -21,7 +21,11 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 [https://insurance-pricing-ai.streamlit.app](https://insurance-pricing-ai-myxjhrl3vaeyahw8kkrmc6.streamlit.app/)
 
 ---
+## 📊 Dashboard Preview
 
+### Pricing Calculator
+![Pricing](images/pricing.png)
+---
 ## 🧠 Methodology
 
 ### 1. Frequency Model

@@ -17,6 +17,10 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 - Enable **scenario-based underwriting decisions**
 
 ---
+## 🚀 Live Demo
+[https://insurance-pricing-ai.streamlit.app](https://insurance-pricing-ai-myxjhrl3vaeyahw8kkrmc6.streamlit.app/)
+
+---
 
 ## 🧠 Methodology
 
@@ -142,6 +146,3 @@ python src/train_frequency_model.py
 python src/train_severity_model.py
 4. Run dashboard
 python -m streamlit run app/streamlit_app.py
-
-## 🚀 Live Demo
-[https://insurance-pricing-ai.streamlit.app](https://insurance-pricing-ai-myxjhrl3vaeyahw8kkrmc6.streamlit.app/)

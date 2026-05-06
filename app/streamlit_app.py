@@ -1,11 +1,13 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
+import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 st.set_page_config(page_title="P&C Pricing Dashboard", layout="wide")
 
@@ -82,12 +84,13 @@ st.write(
     "risk drivers, and rate indication analytics."
 )
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Pricing Calculator",
     "Scenario Comparison",
     "Risk Drivers",
     "Rate Indication",
-    "Model Info"
+    "Model Info",
+    "Model Error Analysis"
 ])
 
 
@@ -312,6 +315,60 @@ with tab5:
     st.write("- Rate indication analysis")
     st.write("- Scenario testing")
     st.write("- Risk driver interpretation")
+
+
+with tab6:
+    st.header("Model Error Analysis")
+
+    X_eval = pricing_data.drop(columns=["claim_flag", "claim_amount"])
+    y_eval = pricing_data["claim_flag"]
+
+    predictions = frequency_model.predict(X_eval)
+    probabilities = frequency_model.predict_proba(X_eval)[:, 1]
+
+    results_df = pd.DataFrame({
+        "actual": y_eval.values,
+        "predicted": predictions,
+        "probability_of_claim": probabilities
+    })
+
+    results_df["classification_error"] = (
+        results_df["actual"] != results_df["predicted"]
+    ).astype(int)
+
+    results_df["probability_error"] = abs(
+        results_df["actual"] - results_df["probability_of_claim"]
+    )
+
+    error_rate = results_df["classification_error"].mean()
+
+    st.metric("Classification Error Rate", f"{error_rate:.2%}")
+
+    st.subheader("Prediction Error Sample")
+    st.dataframe(results_df.head(20), use_container_width=True)
+
+    st.subheader("Confusion Matrix")
+
+    cm = confusion_matrix(y_eval, predictions)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["No Claim", "Claim"]
+    )
+    disp.plot(ax=ax)
+    ax.set_title("Claim Prediction Confusion Matrix")
+    st.pyplot(fig)
+
+    st.subheader("Prediction Probability Error Distribution")
+
+    fig2, ax2 = plt.subplots(figsize=(8, 5))
+    ax2.hist(results_df["probability_error"], bins=20)
+    ax2.set_xlabel("Prediction Probability Error")
+    ax2.set_ylabel("Number of Policies")
+    ax2.set_title("Distribution of Prediction Errors")
+    st.pyplot(fig2)
+
 
 st.markdown("---")
 st.caption("Built with Scikit-learn + Streamlit | P&C Pricing Analytics Dashboard")

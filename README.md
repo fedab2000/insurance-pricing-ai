@@ -167,3 +167,6 @@ python src/train_frequency_model.py
 python src/train_severity_model.py
 4. Run dashboard
 python -m streamlit run app/streamlit_app.py
+
+### Author
+Feda Bashbishi MSc, MBA, MDSAI  fbashbis@uwaterloo.ca

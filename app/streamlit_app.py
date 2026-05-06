@@ -5,9 +5,14 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, PoissonRegressor
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import (
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    mean_absolute_error,
+    mean_squared_error
+)
 
 st.set_page_config(page_title="P&C Pricing Dashboard", layout="wide")
 
@@ -18,7 +23,9 @@ def load_or_train_models():
 
     categorical_cols = ["location", "vehicle_type", "coverage_type"]
 
-    # Frequency model
+    # -----------------------------
+    # Logistic Regression Frequency Model
+    # -----------------------------
     X_freq = pricing_data.drop(columns=["claim_flag", "claim_amount"])
     y_freq = pricing_data["claim_flag"]
 
@@ -42,7 +49,29 @@ def load_or_train_models():
 
     frequency_model.fit(X_freq, y_freq)
 
-    # Severity model
+    # -----------------------------
+    # Poisson GLM Frequency Model
+    # -----------------------------
+    glm_preprocessor = ColumnTransformer(
+        transformers=[
+            ("cat", OneHotEncoder(drop="first"), categorical_cols),
+            ("num", StandardScaler(), numerical_cols)
+        ]
+    )
+
+    glm_frequency_model = Pipeline([
+        ("preprocessor", glm_preprocessor),
+        ("glm_poisson", PoissonRegressor(
+            alpha=0.1,
+            max_iter=1000
+        ))
+    ])
+
+    glm_frequency_model.fit(X_freq, y_freq)
+
+    # -----------------------------
+    # Severity Model
+    # -----------------------------
     claims_data = pricing_data[pricing_data["claim_flag"] == 1].copy()
 
     X_severity = claims_data.drop(columns=["claim_flag", "claim_amount"])
@@ -62,7 +91,9 @@ def load_or_train_models():
 
     severity_model.fit(X_severity, y_severity)
 
-    # Feature importance
+    # -----------------------------
+    # Feature Importance
+    # -----------------------------
     feature_names = frequency_model.named_steps["preprocessor"].get_feature_names_out()
     coefficients = frequency_model.named_steps["classifier"].coef_[0]
 
@@ -71,26 +102,27 @@ def load_or_train_models():
         "importance": coefficients
     }).sort_values(by="importance", ascending=False)
 
-    return frequency_model, severity_model, feature_importance, pricing_data
+    return frequency_model, glm_frequency_model, severity_model, feature_importance, pricing_data
 
 
-frequency_model, severity_model, feature_importance, pricing_data = load_or_train_models()
+frequency_model, glm_frequency_model, severity_model, feature_importance, pricing_data = load_or_train_models()
 
 
 st.title("P&C Pricing Analytics Dashboard")
 
 st.write(
     "This dashboard supports pricing analysis using frequency, severity, expected loss, "
-    "risk drivers, and rate indication analytics."
+    "risk drivers, rate indication analytics, and GLM vs ML model comparison."
 )
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Pricing Calculator",
     "Scenario Comparison",
     "Risk Drivers",
     "Rate Indication",
     "Model Info",
-    "Model Error Analysis"
+    "Model Error Analysis",
+    "GLM vs ML Comparison"
 ])
 
 
@@ -299,6 +331,10 @@ with tab5:
     st.write("Predicts the probability that a policy will have a claim.")
     st.write("Model used: Logistic Regression with balanced class weights.")
 
+    st.write("### GLM Frequency Model")
+    st.write("Predicts expected claim frequency using a Poisson GLM.")
+    st.write("Model used: PoissonRegressor.")
+
     st.write("### Severity Model")
     st.write("Predicts the expected claim amount for policies with claims.")
     st.write("Model used: Gradient Boosting Regressor.")
@@ -315,6 +351,7 @@ with tab5:
     st.write("- Rate indication analysis")
     st.write("- Scenario testing")
     st.write("- Risk driver interpretation")
+    st.write("- GLM vs ML model comparison")
 
 
 with tab6:
@@ -368,6 +405,153 @@ with tab6:
     ax2.set_ylabel("Number of Policies")
     ax2.set_title("Distribution of Prediction Errors")
     st.pyplot(fig2)
+
+
+with tab7:
+    st.header("GLM vs ML Frequency Model Comparison")
+
+    st.write(
+        "This section compares a traditional actuarial-style Poisson GLM "
+        "against a machine learning Logistic Regression frequency model."
+    )
+
+    X_compare = pricing_data.drop(columns=["claim_flag", "claim_amount"])
+    y_compare = pricing_data["claim_flag"]
+
+    logistic_probabilities = frequency_model.predict_proba(X_compare)[:, 1]
+    glm_predictions = glm_frequency_model.predict(X_compare)
+
+    comparison_results = pd.DataFrame({
+        "actual_claim_flag": y_compare.values,
+        "logistic_predicted_probability": logistic_probabilities,
+        "glm_predicted_frequency": glm_predictions
+    })
+
+    comparison_results["logistic_absolute_error"] = abs(
+        comparison_results["actual_claim_flag"] -
+        comparison_results["logistic_predicted_probability"]
+    )
+
+    comparison_results["glm_absolute_error"] = abs(
+        comparison_results["actual_claim_flag"] -
+        comparison_results["glm_predicted_frequency"]
+    )
+
+    logistic_mae = mean_absolute_error(
+        comparison_results["actual_claim_flag"],
+        comparison_results["logistic_predicted_probability"]
+    )
+
+    glm_mae = mean_absolute_error(
+        comparison_results["actual_claim_flag"],
+        comparison_results["glm_predicted_frequency"]
+    )
+
+    logistic_rmse = mean_squared_error(
+        comparison_results["actual_claim_flag"],
+        comparison_results["logistic_predicted_probability"]
+    ) ** 0.5
+
+    glm_rmse = mean_squared_error(
+        comparison_results["actual_claim_flag"],
+        comparison_results["glm_predicted_frequency"]
+    ) ** 0.5
+
+    metric_df = pd.DataFrame({
+        "Model": [
+            "Logistic Regression ML Frequency Model",
+            "Poisson GLM Frequency Model"
+        ],
+        "Prediction Type": [
+            "Probability of Claim",
+            "Expected Claim Frequency"
+        ],
+        "MAE": [
+            logistic_mae,
+            glm_mae
+        ],
+        "RMSE": [
+            logistic_rmse,
+            glm_rmse
+        ],
+        "Average Prediction": [
+            logistic_probabilities.mean(),
+            glm_predictions.mean()
+        ],
+        "Actual Claim Rate": [
+            y_compare.mean(),
+            y_compare.mean()
+        ]
+    })
+
+    st.subheader("Model Performance Comparison")
+    st.dataframe(metric_df, use_container_width=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("Logistic Regression MAE", f"{logistic_mae:.4f}")
+        st.metric("Logistic Regression RMSE", f"{logistic_rmse:.4f}")
+
+    with col2:
+        st.metric("Poisson GLM MAE", f"{glm_mae:.4f}")
+        st.metric("Poisson GLM RMSE", f"{glm_rmse:.4f}")
+
+    st.subheader("Sample Prediction Comparison")
+    st.dataframe(comparison_results.head(25), use_container_width=True)
+
+    st.subheader("Average Predicted Frequency by Vehicle Type")
+
+    vehicle_comparison = pricing_data.copy()
+    vehicle_comparison["logistic_predicted_probability"] = logistic_probabilities
+    vehicle_comparison["glm_predicted_frequency"] = glm_predictions
+
+    vehicle_summary = vehicle_comparison.groupby("vehicle_type").agg(
+        actual_claim_rate=("claim_flag", "mean"),
+        logistic_avg_prediction=("logistic_predicted_probability", "mean"),
+        glm_avg_prediction=("glm_predicted_frequency", "mean")
+    ).reset_index()
+
+    st.dataframe(vehicle_summary, use_container_width=True)
+
+    st.bar_chart(
+        vehicle_summary.set_index("vehicle_type")[
+            ["actual_claim_rate", "logistic_avg_prediction", "glm_avg_prediction"]
+        ]
+    )
+
+    st.subheader("Prediction Error Distribution: Logistic vs GLM")
+
+    fig3, ax3 = plt.subplots(figsize=(8, 5))
+    ax3.hist(
+        comparison_results["logistic_absolute_error"],
+        bins=20,
+        alpha=0.6,
+        label="Logistic Regression"
+    )
+    ax3.hist(
+        comparison_results["glm_absolute_error"],
+        bins=20,
+        alpha=0.6,
+        label="Poisson GLM"
+    )
+    ax3.set_xlabel("Absolute Prediction Error")
+    ax3.set_ylabel("Number of Policies")
+    ax3.set_title("Prediction Error Distribution")
+    ax3.legend()
+    st.pyplot(fig3)
+
+    st.write("### Interpretation")
+
+    st.write(
+        "- **Logistic Regression** predicts the probability that a policy will have a claim."
+    )
+    st.write(
+        "- **Poisson GLM** predicts expected claim frequency, which is closer to traditional actuarial pricing."
+    )
+    st.write(
+        "- Comparing both approaches shows how classical actuarial models and modern ML models can support pricing decisions."
+    )
 
 
 st.markdown("---")

@@ -1,9 +1,15 @@
 import pandas as pd
 import joblib
 import os
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import (
+    classification_report,
+    roc_auc_score,
+    confusion_matrix,
+    ConfusionMatrixDisplay
+)
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
@@ -52,6 +58,64 @@ def train_frequency_model():
     print(classification_report(y_test, predictions, zero_division=0))
     print("ROC AUC:", round(roc_auc_score(y_test, probabilities), 3))
 
+    os.makedirs("outputs", exist_ok=True)
+
+    # -----------------------------
+    # Error analysis table
+    # -----------------------------
+    results_df = pd.DataFrame({
+        "actual": y_test.values,
+        "predicted": predictions,
+        "probability_of_claim": probabilities
+    })
+
+    results_df["classification_error"] = (
+        results_df["actual"] != results_df["predicted"]
+    ).astype(int)
+
+    results_df["probability_error"] = abs(
+        results_df["actual"] - results_df["probability_of_claim"]
+    )
+
+    error_rate = results_df["classification_error"].mean()
+
+    print("\n=== Error Analysis ===")
+    print("Classification Error Rate:", round(error_rate, 3))
+    print(results_df.head(10))
+
+    results_df.to_csv(
+        "outputs/frequency_prediction_errors.csv",
+        index=False
+    )
+
+    # -----------------------------
+    # Confusion matrix plot
+    # -----------------------------
+    cm = confusion_matrix(y_test, predictions)
+
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["No Claim", "Claim"]
+    )
+
+    disp.plot()
+    plt.title("Claim Prediction Confusion Matrix")
+    plt.tight_layout()
+    plt.savefig("outputs/frequency_confusion_matrix.png")
+    plt.show()
+
+    # -----------------------------
+    # Probability error histogram
+    # -----------------------------
+    plt.figure(figsize=(8, 5))
+    plt.hist(results_df["probability_error"], bins=20)
+    plt.xlabel("Prediction Probability Error")
+    plt.ylabel("Number of Policies")
+    plt.title("Distribution of Prediction Errors")
+    plt.tight_layout()
+    plt.savefig("outputs/frequency_error_histogram.png")
+    plt.show()
+
     # Feature importance
     feature_names = model.named_steps["preprocessor"].get_feature_names_out()
     coefficients = model.named_steps["classifier"].coef_[0]
@@ -67,8 +131,6 @@ def train_frequency_model():
     print("\n=== Top Protective Factors ===")
     print(importance_df.tail(10))
 
-    os.makedirs("outputs", exist_ok=True)
-
     importance_df.to_csv(
         "outputs/frequency_feature_importance.csv",
         index=False
@@ -78,6 +140,9 @@ def train_frequency_model():
 
     print("\n✅ Frequency model saved to outputs/frequency_model.joblib")
     print("✅ Feature importance saved to outputs/frequency_feature_importance.csv")
+    print("✅ Prediction errors saved to outputs/frequency_prediction_errors.csv")
+    print("✅ Confusion matrix saved to outputs/frequency_confusion_matrix.png")
+    print("✅ Error histogram saved to outputs/frequency_error_histogram.png")
 
     return model
 
@@ -94,8 +159,7 @@ if __name__ == "__main__":
         "coverage_type": "Standard",
         "prior_claims": 1,
         "traffic_violations": 0,
-        "policy_tenure": 2,
-        "current_premium": 1200
+        "policy_tenure": 2
     }
 
     sample_df = pd.DataFrame([sample])

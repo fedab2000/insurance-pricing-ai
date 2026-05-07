@@ -42,6 +42,18 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 
 ### Risk Drivers
 ![Risk](images/RiskDrivers.png)
+
+### More Info
+![Info](images/moreiInfo.png)
+
+### Error Analysis
+![Error](images/ErrorAnalysis.png)
+
+### Confusion Matrix
+![Matrix](images/confusionMatrix.png)
+
+### Model Comparison
+![Comparison](images/modelComparison.png)
 ---
 ## 🧠 Methodology
 

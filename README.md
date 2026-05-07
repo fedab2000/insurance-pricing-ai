@@ -44,7 +44,7 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 ![Risk](images/RiskDrivers.png)
 
 ### More Info
-![Info](images/moreiInfo.png)
+![Info](images/moreInfo.png)
 
 ### Error Analysis
 ![Analysis](images/ErrorAnalysis.png)

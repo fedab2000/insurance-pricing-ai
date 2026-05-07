@@ -47,7 +47,7 @@ This project replicates core responsibilities of a **Pricing & Data Analytics te
 ![Info](images/moreiInfo.png)
 
 ### Error Analysis
-![Error](images/ErrorAnalysis.png)
+![Analysis](images/ErrorAnalysis.png)
 
 ### Confusion Matrix
 ![Matrix](images/confusionMatrix.png)

@@ -569,11 +569,12 @@ with tab7:
     st.write(
         "- Comparing both approaches shows how classical actuarial models and modern ML models can support pricing decisions."
     )
-    st.caption(
-    "Feda Bashbishi | AI Governance, Fraud Analytics, Business Intelligence & Machine Learning Portfolio"
-)
+
 
 
 
 st.markdown("---")
 st.caption("Built with Scikit-learn + Streamlit | P&C Pricing Analytics Dashboard")
+    st.caption(
+    "Feda Bashbishi | AI Governance, Fraud Analytics, Business Intelligence & Machine Learning Portfolio"
+)

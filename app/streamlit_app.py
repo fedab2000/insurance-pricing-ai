@@ -575,6 +575,6 @@ with tab7:
 
 st.markdown("---")
 st.caption("Built with Scikit-learn + Streamlit | P&C Pricing Analytics Dashboard")
-    st.caption(
+st.caption(
     "Feda Bashbishi | AI Governance, Fraud Analytics, Business Intelligence & Machine Learning Portfolio"
 )

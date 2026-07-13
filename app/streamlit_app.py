@@ -570,6 +570,10 @@ with tab7:
     st.write(
         "- Comparing both approaches shows how classical actuarial models and modern ML models can support pricing decisions."
     )
+    st.caption(
+    "Feda Bashbishi | AI Governance, Fraud Analytics, Business Intelligence & Machine Learning Portfolio"
+)
+
 
 
 st.markdown("---")
